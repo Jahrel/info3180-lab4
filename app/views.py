@@ -71,7 +71,6 @@ def logout():
     return redirect(url_for('home'))
 
 def get_upload_images():
-    
     images_lst = []
     for subdir, dirs, files in os.walk(app.config['UPLOAD_FOLDER']):
         for file in files:
@@ -79,6 +78,19 @@ def get_upload_images():
             if f_ext in [".png",".jpg"]:
                 images_lst.append('uploads/' + f)
     return images_lst
+
+@app.route("/uploads/<filename>")
+def get_image(filename):
+    root_dir = os.getcwd()
+
+    return send_from_directory(os.path.join(root_dir, app.config['UPLOAD_FOLDER']), filename)
+
+@app.route('/files')
+def files():
+    if not session.get('logged_in'):
+        abort(401)
+        
+    return render_template('files.html', imgs=get_uploaded_images())
  
 
 
