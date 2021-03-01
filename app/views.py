@@ -7,7 +7,7 @@ This file creates your application.
 import os
 from app import app
 from app.forms import UploadForm
-from flask import render_template, request, redirect, url_for, flash, session, abort
+from flask import render_template, request, redirect, url_for, flash, session, abort, send_from_directory
 from werkzeug.utils import secure_filename
 
 
@@ -36,11 +36,11 @@ def upload():
     form = UploadForm()
 
     # Validate file upload on submit
-    if request.method == 'POST':
+    if request.method == 'POST' and form.validate_on_submit():
         # Get file data and save to your uploads folder
-        file_ = request.files['photo']
-        filename = secure_filename(file_.filename)
-        file_.save(os.path.join(
+        file=form.file_upload.data
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(
             app.config['UPLOAD_FOLDER'], filename
         ))
         
@@ -70,14 +70,25 @@ def logout():
     flash('You were logged out', 'success')
     return redirect(url_for('home'))
 
+@app.route('/files')
+def files():
+    if not session.get('logged_in'):
+        abort(401)
+    
+    images_lst = get_upload_images()
+        
+    return render_template('files.html', imgs=get_upload_images())
+
 def get_upload_images():
     images_lst = []
+    
     for subdir, dirs, files in os.walk(app.config['UPLOAD_FOLDER']):
         for file in files:
-            f_name, f_ext = os.path.splitext(f)
-            if f_ext in [".png",".jpg"]:
-                images_lst.append('uploads/' + f)
+            file_name, file_ext = os.path.splitext(file)
+            if file_ext in [".png",".jpg",".jpeg"]:
+                images_lst.append(file)
     return images_lst
+
 
 @app.route("/uploads/<filename>")
 def get_image(filename):
@@ -85,19 +96,9 @@ def get_image(filename):
 
     return send_from_directory(os.path.join(root_dir, app.config['UPLOAD_FOLDER']), filename)
 
-@app.route('/files')
-def files():
-    if not session.get('logged_in'):
-        abort(401)
-        
-    return render_template('files.html', imgs=get_uploaded_images())
+
  
 
-
-
-###
-# The functions below should be applicable to all Flask apps.
-###
 
 # Flash errors from the form if validation fails
 def flash_errors(form):
